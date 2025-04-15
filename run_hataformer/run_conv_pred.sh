@@ -32,23 +32,23 @@ FREQUENCIES=("hourly")
 MODELS=("hataformer")
 BATCH_SIZES=("32")
 LOOKBACK_WINDOWS=("96")
-FORECAST_HORIZONS=("336")
+FORECAST_HORIZONS=("96" "192" "336" "720")
 LEARNING_RATES=("0.0005")
 WEIGHT_DECAYS=("0.000001")
 OPTIMIZERS=("adam")
-PATIENCE=("10")
-EPOCHS=("10")
+PATIENCE=("8")
+EPOCHS=("20")
 D_MODELS=("16")
-N_HEADS=("1")
+N_HEADS=("1" "2")
 D_FFS=("16")
-ENCODER_LAYERS=("1")
+ENCODER_LAYERS=("0")
 DECODER_LAYERS=("1")
 DROPOUTS=("0.2")
-BIAS_TYPES=("learned" "scheduled")
 ADD_TEMPORAL_FEATURES_VALUES=("True")
-ENCODING_TYPES=("sinusoidal")
+ENCODING_TYPES=("temporal_proj" "temporal" "learnable" "sinusoidal")
 COMPUTE_METRIC_WEIGHTS_VALUES=("True")
-VISUALIZE_ATTENTION_VALUES=("False")
+VISUALIZE_ATTENTION="True"
+ALPHAS=("0.0" "10" "20" "30" "40" "50")
 
 # Grid Search Execution
 for TASK in "${TASKS[@]}"; do
@@ -82,72 +82,73 @@ for TASK in "${TASKS[@]}"; do
                                     for ADD_TEMPORAL_FEATURES in "${ADD_TEMPORAL_FEATURES_VALUES[@]}"; do
                                       for ENCODING_TYPE in "${ENCODING_TYPES[@]}"; do
                                         for COMPUTE_METRIC_WEIGHTS in "${COMPUTE_METRIC_WEIGHTS_VALUES[@]}"; do
-                                          for VISUALIZE_ATTENTION in "${VISUALIZE_ATTENTION_VALUES[@]}"; do
-                                            for BIAS_TYPE in "${BIAS_TYPES[@]}"; do
+                                          for ALPHA in "${ALPHAS[@]}"; do
 
-                                              LOCAL_WINDOW_SIZE=$(( FORECAST_HORIZON * 15 / 100 ))
-                                              if [[ $LOCAL_WINDOW_SIZE -gt $LOOKBACK_WINDOW ]]; then
+                                            if [[ $(echo "$ALPHA == 0.0" | bc) -eq 1 ]]; then
+                                              LOCAL_WINDOW_SIZE=0
+                                            else
+                                              LOCAL_WINDOW_SIZE=$(echo "$FORECAST_HORIZON * $ALPHA / 100" | bc)
+                                              if [[ $(echo "$LOCAL_WINDOW_SIZE > $LOOKBACK_WINDOW" | bc) -eq 1 ]]; then
                                                 LOCAL_WINDOW_SIZE=$LOOKBACK_WINDOW
                                               fi
+                                            fi
 
-                                              echo "Running Configuration:"
-                                              echo "  Task: $TASK"
-                                              echo "  Test Case: $TEST_CASE"
-                                              echo "  Event: $EVENT"
-                                              echo "  Target: $TARGET"
-                                              echo "  Frequency: $FREQUENCY"
-                                              echo "  Model: $MODEL"
-                                              echo "  Add Temporal Features: $ADD_TEMPORAL_FEATURES"
-                                              echo "  Encoding Type: $ENCODING_TYPE"
-                                              echo "  Compute Metric Weights: $COMPUTE_METRIC_WEIGHTS"
-                                              echo "  Visualize Attention: $VISUALIZE_ATTENTION"
-                                              echo "  Batch Size: $BATCH_SIZE"
-                                              echo "  Epochs: $EPOCH"
-                                              echo "  Lookback Window: $LOOKBACK_WINDOW"
-                                              echo "  Forecast Horizon: $FORECAST_HORIZON"
-                                              echo "  Learning Rate: $LEARNING_RATE"
-                                              echo "  Weight Decay: $WEIGHT_DECAY"
-                                              echo "  Optimizer: $OPTIMIZER"
-                                              echo "  Patience: $PATIENCE"
-                                              echo "  d_model: $D_MODEL"
-                                              echo "  n_heads: $N_HEAD"
-                                              echo "  d_ff: $D_FF"
-                                              echo "  Encoder Layers: $ENCODER_LAYER"
-                                              echo "  Decoder Layers: $DECODER_LAYER"
-                                              echo "  Dropout: $DROPOUT"
-                                              echo "  Bias Type: $BIAS_TYPE"
-                                              echo "  Local Window Size: $LOCAL_WINDOW_SIZE"
-                                              echo "  Device: $DEVICE"
+                                            echo "Running Configuration:"
+                                            echo "  Task: $TASK"
+                                            echo "  Test Case: $TEST_CASE"
+                                            echo "  Event: $EVENT"
+                                            echo "  Target: $TARGET"
+                                            echo "  Frequency: $FREQUENCY"
+                                            echo "  Model: $MODEL"
+                                            echo "  Add Temporal Features: $ADD_TEMPORAL_FEATURES"
+                                            echo "  Encoding Type: $ENCODING_TYPE"
+                                            echo "  Compute Metric Weights: $COMPUTE_METRIC_WEIGHTS"
+                                            echo "  Visualize Attention: $VISUALIZE_ATTENTION"
+                                            echo "  Batch Size: $BATCH_SIZE"
+                                            echo "  Epochs: $EPOCH"
+                                            echo "  Lookback Window: $LOOKBACK_WINDOW"
+                                            echo "  Forecast Horizon: $FORECAST_HORIZON"
+                                            echo "  Learning Rate: $LEARNING_RATE"
+                                            echo "  Weight Decay: $WEIGHT_DECAY"
+                                            echo "  Optimizer: $OPTIMIZER"
+                                            echo "  Patience: $PATIENCE"
+                                            echo "  d_model: $D_MODEL"
+                                            echo "  n_heads: $N_HEAD"
+                                            echo "  d_ff: $D_FF"
+                                            echo "  Encoder Layers: $ENCODER_LAYER"
+                                            echo "  Decoder Layers: $DECODER_LAYER"
+                                            echo "  Dropout: $DROPOUT"
+                                            echo "  Local Window Size: $LOCAL_WINDOW_SIZE"
+                                            echo "  Device: $DEVICE"
 
-                                              python -u main.py \
-                                                --task "$TASK" \
-                                                --test_case "$TEST_CASE" \
-                                                --model "$MODEL" \
-                                                --frequency "$FREQUENCY" \
-                                                --add_temporal_features "$ADD_TEMPORAL_FEATURES" \
-                                                --encoding_type "$ENCODING_TYPE" \
-                                                --compute_metric_weights "$COMPUTE_METRIC_WEIGHTS" \
-                                                --visualize_attention "$VISUALIZE_ATTENTION" \
-                                                --data_path "data/processed/$TASK/$FREQUENCY" \
-                                                --target_name "$TARGET" \
-                                                --batch_size "$BATCH_SIZE" \
-                                                --epochs "$EPOCH" \
-                                                --patience "$PATIENCE" \
-                                                --learning_rate "$LEARNING_RATE" \
-                                                --weight_decay "$WEIGHT_DECAY" \
-                                                --optimizer "$OPTIMIZER" \
-                                                --lookback_window "$LOOKBACK_WINDOW" \
-                                                --forecast_horizon "$FORECAST_HORIZON" \
-                                                --d_model "$D_MODEL" \
-                                                --n_heads "$N_HEAD" \
-                                                --d_ff "$D_FF" \
-                                                --num_encoder_layers "$ENCODER_LAYER" \
-                                                --num_decoder_layers "$DECODER_LAYER" \
-                                                --dropout "$DROPOUT" \
-                                                --bias_type "$BIAS_TYPE" \
-                                                --local_window_size "$LOCAL_WINDOW_SIZE" \
-                                                --device "$DEVICE" \
-                                                --event "$EVENT"
+                                            python -u main.py \
+                                              --task "$TASK" \
+                                              --test_case "$TEST_CASE" \
+                                              --model "$MODEL" \
+                                              --frequency "$FREQUENCY" \
+                                              --add_temporal_features "$ADD_TEMPORAL_FEATURES" \
+                                              --encoding_type "$ENCODING_TYPE" \
+                                              --compute_metric_weights "$COMPUTE_METRIC_WEIGHTS" \
+                                              --visualize_attention "$VISUALIZE_ATTENTION" \
+                                              --data_path "data/processed/$TASK/$FREQUENCY" \
+                                              --target_name "$TARGET" \
+                                              --batch_size "$BATCH_SIZE" \
+                                              --epochs "$EPOCH" \
+                                              --patience "$PATIENCE" \
+                                              --learning_rate "$LEARNING_RATE" \
+                                              --weight_decay "$WEIGHT_DECAY" \
+                                              --optimizer "$OPTIMIZER" \
+                                              --lookback_window "$LOOKBACK_WINDOW" \
+                                              --forecast_horizon "$FORECAST_HORIZON" \
+                                              --d_model "$D_MODEL" \
+                                              --n_heads "$N_HEAD" \
+                                              --d_ff "$D_FF" \
+                                              --num_encoder_layers "$ENCODER_LAYER" \
+                                              --num_decoder_layers "$DECODER_LAYER" \
+                                              --dropout "$DROPOUT" \
+                                              --local_window_size "$LOCAL_WINDOW_SIZE" \
+                                              --device "$DEVICE" \
+                                              --event "$EVENT"
 
                                             done
                                           done

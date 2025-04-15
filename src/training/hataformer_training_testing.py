@@ -104,7 +104,6 @@ class TrainHATAFormer:
             encoding_type=self.args.encoding_type,
             local_window_size=self.args.local_window_size,
             forecast_horizon=self.args.forecast_horizon,
-            bias_type=self.args.bias_type
         ).to(self.device)
 
         # Correct call to get_optimizer
@@ -154,11 +153,7 @@ class TrainHATAFormer:
             "max_len": max(self.args.lookback_window, self.args.forecast_horizon),
             "encoding_type": self.args.encoding_type,
             "local_window_size": self.args.local_window_size,
-            "enable_ci": self.args.enable_ci,
-            "enable_cd": self.args.enable_cd,
-            "stochastic_depth_prob": self.args.stochastic_depth_prob,
             "forecast_horizon": self.args.forecast_horizon,
-            "bias_type": self.args.bias_type,
         }
         # Save hyperparameters to the file
         with open(self.param_path, "w") as f:
@@ -304,17 +299,7 @@ class TrainHATAFormer:
         with torch.no_grad():
             for _, (x_batch, y_batch) in enumerate(self.val_loader):
                 x_batch, y_batch = x_batch.to(self.device), y_batch.to(self.device)
-
-                if self.args.compute_metric_weights:
-                    # Compute initial predictions to calculate metric weights
-                    outputs, _, _ = self.model(x_batch, y_batch)
-                    metric_weights = self.compute_metric_weights(y_batch, outputs)
-
-                    # Recompute predictions using metric weights
-                    outputs, _, _ = self.model(x_batch, y_batch, metric_weights=metric_weights)
-                else:
-                    # Directly compute multi-step predictions
-                    outputs, _, _ = self.model(x_batch, y_batch)
+                outputs, _, _ = self.model(x_batch, y_batch)
 
                 # Ensure loss is computed across the full forecast horizon
                 loss = self.criterion(outputs, y_batch)
@@ -328,22 +313,6 @@ class TrainHATAFormer:
 
         return val_loss, val_metrics
 
-    def compute_metric_weights(self, y_true, y_pred):
-        """
-        Compute step-wise metric weights based on MSE.
-
-        Args:
-            y_true (torch.Tensor): Ground truth tensor of shape (batch_size, seq_len).
-            y_pred (torch.Tensor): Predicted tensor of shape (batch_size, seq_len).
-
-        Returns:
-            torch.Tensor: Normalized metric weights of shape (batch_size, seq_len).
-        """
-        # Compute MSE for each timestep and batch
-        mse = torch.mean((y_true - y_pred) ** 2, dim=1, keepdim=True)  # Shape: (batch_size, 1)
-        weights = torch.exp(-mse)  # Inverse relation: lower MSE = higher weight
-        weights = weights / torch.sum(weights, dim=1, keepdim=True)  # Normalize per batch
-        return weights  # Shape: (batch_size, seq_len)
 
     def evaluate(self, test_path):
         """
@@ -351,7 +320,7 @@ class TrainHATAFormer:
         """
         test_path = (
                 Path(test_path) /
-                f"lookback{self.args.lookback_window}_forecast{self.args.forecast_horizon}test_sliding.csv")
+                f"lookback{self.args.lookback_window}_forecast{self.args.forecast_horizon}/test_sliding.csv")
 
         test_dataset = TimeSeriesDataset(test_path, self.args.lookback_window, self.args.forecast_horizon)
         test_loader = DataLoader(test_dataset, batch_size=self.args.batch_size, shuffle=False)
@@ -383,7 +352,6 @@ class TrainHATAFormer:
             encoding_type=hyperparameters["encoding_type"],
             local_window_size=hyperparameters["local_window_size"],
             forecast_horizon=hyperparameters["forecast_horizon"],
-            bias_type=hyperparameters["bias_type"],
         ).to(self.device)
 
         # Load model weights
@@ -409,7 +377,8 @@ class TrainHATAFormer:
 
                 if self.args.visualize_attention:
                     masked_attention_maps.append([attn.cpu().numpy() for attn in masked_attn_weights])
-                    cross_attention_maps.append([attn.cpu().numpy() for attn in cross_attn_weights])
+                    if self.model.num_decoder_layers>0:
+                        cross_attention_maps.append([attn.cpu().numpy() for attn in cross_attn_weights])
 
         # Profiling: End tracking memory and time
         end_time = time.time()

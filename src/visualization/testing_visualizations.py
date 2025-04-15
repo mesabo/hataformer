@@ -233,24 +233,26 @@ def plot_last_layer_attention_maps(attention_maps, output_path):
     os.makedirs(output_path, exist_ok=True)
 
     for attn_type, layers in attention_maps.items():
-        # Select the last layer
-        last_layer_maps = np.array(layers[-1])
+        if not layers or layers[-1] is None or len(layers) == 0:
+            print(f"⚠️ Skipping '{attn_type}' attention — no data available.")
+            continue
 
-        # Check if there is an extra dimension
+        try:
+            last_layer_maps = np.array(layers[-1])
+        except Exception as e:
+            print(f"❌ Failed to process {attn_type} attention maps: {e}")
+            continue
+
         if last_layer_maps.ndim == 5:
-            # Merge the first two dimensions (batch size + another dim)
             last_layer_maps = last_layer_maps.reshape(-1, *last_layer_maps.shape[2:])
 
         if last_layer_maps.ndim != 4:
-            raise ValueError(
-                f"Expected attention maps with shape (batch_size, num_heads, seq_len, seq_len) "
-                f"but got {last_layer_maps.shape} for {attn_type} at the last layer."
-            )
+            print(f"⚠️ Skipping '{attn_type}' due to unexpected shape: {last_layer_maps.shape}")
+            continue
 
         batch_size, num_heads, seq_len, _ = last_layer_maps.shape
 
         for batch_idx in range(batch_size):
-            # Create a grid of subplots: heads as rows
             fig, axes = plt.subplots(
                 nrows=num_heads,
                 ncols=1,
@@ -260,10 +262,8 @@ def plot_last_layer_attention_maps(attention_maps, output_path):
             )
 
             for head_idx in range(num_heads):
-                # Extract attention map for this batch, layer, and head
                 head_attn_map = last_layer_maps[batch_idx, head_idx, :, :]
-
-                ax = axes[head_idx] if num_heads > 1 else axes  # Handle single-row grids
+                ax = axes[head_idx] if num_heads > 1 else axes
                 sns.heatmap(
                     head_attn_map,
                     cmap="viridis",
@@ -272,13 +272,10 @@ def plot_last_layer_attention_maps(attention_maps, output_path):
                     xticklabels=False,
                     yticklabels=False,
                 )
-                ax.set_title(
-                    f"Head {head_idx + 1}", fontsize=10
-                )
+                ax.set_title(f"Head {head_idx + 1}", fontsize=10)
                 ax.set_xlabel("Key Positions")
                 ax.set_ylabel("Query Positions")
 
-            # Set a global title and save the plot
             fig.suptitle(
                 f"{attn_type.capitalize()} Attention - Last Layer, Batch {batch_idx + 1}",
                 fontsize=14,
@@ -292,10 +289,7 @@ def plot_last_layer_attention_maps(attention_maps, output_path):
             plt.savefig(save_path)
             plt.close()
 
-    print(f"Attention maps for the last layer successfully plotted and saved to {output_path}")
-
-
-
+    print(f"✅ Attention maps (last layer) successfully saved in: {output_path}")
 
 
 

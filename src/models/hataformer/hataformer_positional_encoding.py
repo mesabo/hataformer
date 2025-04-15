@@ -14,16 +14,24 @@ Lab: Prof YU Keping's Lab
 
 import torch
 import torch.nn as nn
+import math
+
+
 class HATAFormerPositionalEncoding(nn.Module):
     """
-    Implements learnable positional encoding with optional sinusoidal fallback.
+    Implements multiple positional encoding strategies, including:
+    - Learnable
+    - Sinusoidal
+    - Temporal
+    - Fourier-Light + Scalar Bias Modulation (new)
+    - Normalized Temporal Projection (copyright-free alternative)
 
     Args:
         d_model (int): Dimensionality of the embedding space.
         d_t (int): Number of temporal features (e.g., hour, day, month).
         max_len (int): Maximum sequence length.
         dropout (float): Dropout probability.
-        encoding_type (str): One of {'learnable', 'sinusoidal', 'temporal'}.
+        encoding_type (str): One of {'learnable', 'sinusoidal', 'temporal', 'fourier_scalar', 'temporal_proj'}.
     """
 
     def __init__(self, d_model, max_len=5000, dropout=0.1, encoding_type="sinusoidal", d_t=9):
@@ -40,38 +48,27 @@ class HATAFormerPositionalEncoding(nn.Module):
             self.register_buffer("pe", self._generate_sinusoidal_pe(d_model, max_len))
 
         elif encoding_type == "temporal":
-            # Ensure W1 correctly projects temporal features to d_model space
-            self.W1 = nn.Parameter(torch.randn(d_t, d_model))  # (d_t, d_model) instead of (d_model, d_t)
-            self.W2 = nn.Parameter(torch.randn(1, 1, d_model))  # Bias term for broadcasting
+            self.W1 = nn.Parameter(torch.randn(d_t, d_model))
+            self.W2 = nn.Parameter(torch.randn(1, 1, d_model))
+
+        elif encoding_type == "fourier_scalar":
+            self.freqs = nn.Parameter(torch.randn(1, 1, d_t, 2))
+            self.bias_proj = nn.Linear(2 * d_t, d_model)
+            self.scalar_bias = nn.Parameter(torch.zeros(1, 1, d_model))
+
+        elif encoding_type == "temporal_proj":
+            self.W1 = nn.Parameter(torch.randn(d_t, d_model))
+            self.W2 = nn.Parameter(torch.randn(1, 1, d_model))
 
     def _generate_sinusoidal_pe(self, d_model, max_len):
-        """
-        Generate sinusoidal positional encodings.
-
-        Args:
-            d_model (int): Dimensionality of the embedding space.
-            max_len (int): Maximum sequence length.
-
-        Returns:
-            torch.Tensor: Positional encodings of shape (1, max_len, d_model).
-        """
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)
-        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-torch.log(torch.tensor(10000.0)) / d_model))
+        div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div_term)
         pe[:, 1::2] = torch.cos(position * div_term)
         return pe.unsqueeze(0)
 
     def forward(self, x):
-        """
-        Add positional encoding or embeddings to the input.
-
-        Args:
-            x (torch.Tensor): Input tensor of shape (batch_size, seq_len, d_model).
-
-        Returns:
-            torch.Tensor: Tensor with positional encodings added.
-        """
         seq_len = x.size(1)
 
         if self.encoding_type == "learnable":
@@ -84,14 +81,28 @@ class HATAFormerPositionalEncoding(nn.Module):
             x = x + self.pe[:, :seq_len, :]
 
         elif self.encoding_type == "temporal":
-            # Extract the last d_t columns as temporal features
-            temporal_features = x[:, :, -self.d_t:]  # Shape: (batch_size, seq_len, d_t=(hour,day,month))
-
+            temporal_features = x[:, :, -self.d_t:]
             assert temporal_features.shape[-1] == self.d_t, "Mismatch in temporal feature dimensions."
-
-            # Compute Learnable Positional Encoding: LPE = φ(τ) W1^T + W2
-            lpe = torch.einsum("btd,df->btf", temporal_features, self.W1) + self.W2  # Fixed einsum shape
+            lpe = torch.einsum("btd,df->btf", temporal_features, self.W1) + self.W2
             x = x + lpe
 
+        elif self.encoding_type == "fourier_scalar":
+            temporal_features = x[:, :, -self.d_t:]
+            sincos = torch.cat([
+                torch.sin(temporal_features * self.freqs[..., 0]),
+                torch.cos(temporal_features * self.freqs[..., 1])
+            ], dim=-1)
+            scalar_mod = self.bias_proj(sincos) + self.scalar_bias
+            x = x + scalar_mod
+
+        elif self.encoding_type == "temporal_proj":
+            temporal = x[:, :, -self.d_t:]
+            normed = (temporal - temporal.mean(dim=1, keepdim=True)) / (temporal.std(dim=1, keepdim=True) + 1e-5)
+            temp_proj = torch.tanh(normed @ self.W1)
+            temp_bias = self.W2.expand(temp_proj.size())
+            x = x + temp_proj + temp_bias
+
         return self.dropout(x)
+
+
 

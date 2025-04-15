@@ -119,7 +119,7 @@ def get_arguments():
     parser.add_argument(
         "--encoding_type",
         type=str,
-        choices=["temporal", "learnable", "sinusoidal"],
+        choices=["temporal_proj", "fourier_scalar", "temporal", "learnable", "sinusoidal"],
         default="sinusoidal",
         help="Whether to use learnable positional embeddings or fixed sinusoidal encoding.",
     )
@@ -194,7 +194,7 @@ def get_arguments():
     parser.add_argument(
         "--epochs",
         type=int,
-        choices=[2, 5, 10, 15, 20, 25, 50, 60, 100],
+        choices=[2, 3, 5, 10, 15, 20, 25, 50, 60, 100],
         default=10,
         help="Number of training epochs.",
     )
@@ -273,7 +273,7 @@ def get_arguments():
     parser.add_argument(
         "--num_encoder_layers",
         type=int,
-        choices=[1, 2, 4, 6, 8],
+        choices=[0, 1, 2, 4, 6, 8],
         default=2,
         help="Number of encoder layers.",
     )
@@ -297,15 +297,6 @@ def get_arguments():
         choices = [0.0, 0.10, 0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90],
         default=0.0,
         help="Weighting factor for local vs global attention.",
-    )
-
-    # Computation device
-    parser.add_argument(
-        "--bias_type",
-        type=str,
-        choices=["learned", "scheduled"],
-        default="learned",
-        help="Bias type for global attention.",
     )
 
     # Computation device
