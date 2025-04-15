@@ -48,7 +48,7 @@ ADD_TEMPORAL_FEATURES_VALUES=("True")
 ENCODING_TYPES=("temporal_proj" "temporal" "learnable" "sinusoidal")
 COMPUTE_METRIC_WEIGHTS_VALUES=("True")
 VISUALIZE_ATTENTION="True"
-ALPHAS=("0.0" "10" "20" "30" "40" "50")
+ALPHAS=("30") #("0" "10" "20" "30" "40" "50")
 
 # Grid Search Execution
 for TASK in "${TASKS[@]}"; do
@@ -83,7 +83,7 @@ for TASK in "${TASKS[@]}"; do
                                         for COMPUTE_METRIC_WEIGHTS in "${COMPUTE_METRIC_WEIGHTS_VALUES[@]}"; do
                                           for ALPHA in "${ALPHAS[@]}"; do
 
-                                            if [[ $(echo "$ALPHA == 0.0" | bc) -eq 1 ]]; then
+                                            if [[ $(echo "$ALPHA == 0" | bc) -eq 1 ]]; then
                                               LOCAL_WINDOW_SIZE=0
                                             else
                                               LOCAL_WINDOW_SIZE=$(echo "$FORECAST_HORIZON * $ALPHA / 100" | bc)
