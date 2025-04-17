@@ -19,8 +19,10 @@ dependencies:
   - pytorch=2.5.1
   - torchvision
   - psutil
+  - plotly
   - pip:
       - opacus
       - pytorch-memlab
       - tensorboard
       - torch-tb-profiler
+      - kaleido

@@ -40,7 +40,7 @@ class HATAFormerModel(nn.Module):
 
         self.fc_out = nn.Linear(d_model, 1)
 
-    def forward(self, src, tgt):
+    def forward(self, src, tgt, num_batch=None, pe_path=None):
         # Encode inputs
         src = self.input_embedding(src)
         memory = None
@@ -52,8 +52,8 @@ class HATAFormerModel(nn.Module):
         tgt = self.output_embedding(tgt)
 
         # Decode with memory
-        output, self_attn_weights, cross_attn_weights = self.decoder(tgt, memory)
+        output, self_attn_weights, cross_attn_weights = self.decoder(tgt, memory, num_batch, pe_path)
 
         # Final projection
         predictions = self.fc_out(output).squeeze(-1)
-        return predictions, self_attn_weights, cross_attn_weights
+        return predictions, self_attn_weights , cross_attn_weights if self.num_encoder_layers is not None and self.num_encoder_layers > 0 else None

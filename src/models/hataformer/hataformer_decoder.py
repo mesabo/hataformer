@@ -20,16 +20,16 @@ from src.models.hataformer.hataformer_positional_encoding import HATAFormerPosit
 
 
 class HATAFormerDecoderBlock(nn.Module):
-    def __init__(self, d_model, n_heads, num_elayers, d_ff, dropout=0.1, local_window_size=None,):
+    def __init__(self, d_model, n_heads, num_encoder_layers, d_ff, dropout=0.1, local_window_size=None,):
         super().__init__()
         self.attn = HATAFormerMultiHeadAttention(d_model, n_heads, dropout, local_window_size)
-        self.cross_attn = HATAFormerMultiHeadAttention(d_model, n_heads, dropout, local_window_size) if num_elayers>0 else None
+        self.cross_attn = HATAFormerMultiHeadAttention(d_model, n_heads, dropout, local_window_size) if num_encoder_layers>0 else None
         self.feed_forward = HATAFormerFFN(d_model, d_ff, dropout)
         self.layer_norm1 = nn.LayerNorm(d_model)
-        self.layer_norm2 = nn.LayerNorm(d_model) if num_elayers > 0 else None
+        self.layer_norm2 = nn.LayerNorm(d_model) if num_encoder_layers > 0 else None
         self.layer_norm3 = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout(dropout)
-        self.num_elayers = num_elayers
+        self.num_encoder_layers = num_encoder_layers
 
     def forward(self, tgt, memory):
         residual = tgt
@@ -37,7 +37,7 @@ class HATAFormerDecoderBlock(nn.Module):
         x = self.dropout(x)
         x = self.layer_norm1(x + residual)
 
-        if self.num_elayers>0:
+        if self.num_encoder_layers>0:
             residual = x
             x, cross_attn_weights = self.cross_attn(x, memory, memory)
             x = self.dropout(x)
@@ -51,16 +51,16 @@ class HATAFormerDecoderBlock(nn.Module):
 
 
 class HATAFormerDecoder(nn.Module):
-    def __init__(self, d_model, n_heads, d_ff, num_elayers, num_dlayers, max_len=5000, dropout=0.1,
+    def __init__(self, d_model, n_heads, d_ff, num_encoder_layers, num_decoder_layers, max_len=5000, dropout=0.1,
                  encoding_type="temporal", local_window_size=None):
         super().__init__()
         self.positional_encoding = HATAFormerPositionalEncoding(d_model, max_len, dropout, encoding_type)
         self.decoder_layers = nn.ModuleList([
-            HATAFormerDecoderBlock(d_model, n_heads, num_elayers, d_ff, dropout, local_window_size) for _ in range(num_dlayers)])
+            HATAFormerDecoderBlock(d_model, n_heads, num_encoder_layers, d_ff, dropout, local_window_size) for _ in range(num_decoder_layers)])
         self.layer_norm = nn.LayerNorm(d_model)
 
-    def forward(self, tgt, memory):
-        tgt = self.positional_encoding(tgt)
+    def forward(self, tgt, memory, num_batch, pe_path):
+        tgt = self.positional_encoding(tgt, num_batch, pe_path)
         all_self_attn, all_cross_attn = [], []
 
         for layer in self.decoder_layers:

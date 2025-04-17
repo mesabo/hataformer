@@ -11,6 +11,7 @@ Univ: Hosei University
 Dept: Science and Engineering
 Lab: Prof YU Keping's Lab
 """
+import os
 
 import torch
 import torch.nn as nn
@@ -68,7 +69,7 @@ class HATAFormerPositionalEncoding(nn.Module):
         pe[:, 1::2] = torch.cos(position * div_term)
         return pe.unsqueeze(0)
 
-    def forward(self, x):
+    def forward(self, x, num_batch, pe_path):
         seq_len = x.size(1)
 
         if self.encoding_type == "learnable":
@@ -101,6 +102,16 @@ class HATAFormerPositionalEncoding(nn.Module):
             temp_proj = torch.tanh(normed @ self.W1)
             temp_bias = self.W2.expand(temp_proj.size())
             x = x + temp_proj + temp_bias
+        if pe_path is not None:
+            data_dir = os.path.join(pe_path, "data")
+            os.makedirs(data_dir, exist_ok=True)
+
+            filename = f"batch{num_batch}_pe_{self.encoding_type}.pt"
+            file_path = os.path.join(data_dir, filename)
+
+            torch.save(x.detach().cpu(), file_path)
+            print(f"[Saved] Positional encoding to: {file_path}")
+
 
         return self.dropout(x)
 

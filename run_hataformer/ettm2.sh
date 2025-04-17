@@ -37,18 +37,18 @@ LEARNING_RATES=("0.0005")
 WEIGHT_DECAYS=("0.000001")
 OPTIMIZERS=("adam")
 PATIENCE=("8")
-EPOCHS=("20")
+EPOCHS=("10")
 D_MODELS=("16")
-N_HEADS=("1" "2")
+N_HEADS=("2")
 D_FFS=("16")
 ENCODER_LAYERS=("0")
 DECODER_LAYERS=("1")
 DROPOUTS=("0.2")
 ADD_TEMPORAL_FEATURES_VALUES=("True")
-ENCODING_TYPES=("temporal_proj" "temporal" "learnable" "sinusoidal")
+ENCODING_TYPES=("temporal_proj" "learnable" "sinusoidal")
 COMPUTE_METRIC_WEIGHTS_VALUES=("True")
 VISUALIZE_ATTENTION="True"
-ALPHAS=("0" "10" "20" "30" "40" "50")
+ALPHAS=("0" "10" "30" "50")
 
 # Grid Search Execution
 for TASK in "${TASKS[@]}"; do
@@ -66,23 +66,22 @@ for TASK in "${TASKS[@]}"; do
       for FREQUENCY in "${FREQUENCIES[@]}"; do
         for MODEL in "${MODELS[@]}"; do
           for BATCH_SIZE in "${BATCH_SIZES[@]}"; do
-            for LOOKBACK_WINDOW in "${LOOKBACK_WINDOWS[@]}"; do
-              for FORECAST_HORIZON in "${FORECAST_HORIZONS[@]}"; do
-                for LEARNING_RATE in "${LEARNING_RATES[@]}"; do
-                  for WEIGHT_DECAY in "${WEIGHT_DECAYS[@]}"; do
-                    for OPTIMIZER in "${OPTIMIZERS[@]}"; do
-                      for PATIENCE in "${PATIENCE[@]}"; do
-                        for D_MODEL in "${D_MODELS[@]}"; do
-                          for N_HEAD in "${N_HEADS[@]}"; do
-                            for D_FF in "${D_FFS[@]}"; do
-                              for ENCODER_LAYER in "${ENCODER_LAYERS[@]}"; do
-                                for DECODER_LAYER in "${DECODER_LAYERS[@]}"; do
-                                  for DROPOUT in "${DROPOUTS[@]}"; do
-                                    for ADD_TEMPORAL_FEATURES in "${ADD_TEMPORAL_FEATURES_VALUES[@]}"; do
-                                      for ENCODING_TYPE in "${ENCODING_TYPES[@]}"; do
-                                        for COMPUTE_METRIC_WEIGHTS in "${COMPUTE_METRIC_WEIGHTS_VALUES[@]}"; do
-                                          for ALPHA in "${ALPHAS[@]}"; do
-
+            for ALPHA in "${ALPHAS[@]}"; do
+              for LOOKBACK_WINDOW in "${LOOKBACK_WINDOWS[@]}"; do
+                for FORECAST_HORIZON in "${FORECAST_HORIZONS[@]}"; do
+                  for LEARNING_RATE in "${LEARNING_RATES[@]}"; do
+                    for WEIGHT_DECAY in "${WEIGHT_DECAYS[@]}"; do
+                      for OPTIMIZER in "${OPTIMIZERS[@]}"; do
+                        for PATIENCE in "${PATIENCE[@]}"; do
+                          for D_MODEL in "${D_MODELS[@]}"; do
+                            for N_HEAD in "${N_HEADS[@]}"; do
+                              for D_FF in "${D_FFS[@]}"; do
+                                for ENCODER_LAYER in "${ENCODER_LAYERS[@]}"; do
+                                  for DECODER_LAYER in "${DECODER_LAYERS[@]}"; do
+                                    for DROPOUT in "${DROPOUTS[@]}"; do
+                                      for ADD_TEMPORAL_FEATURES in "${ADD_TEMPORAL_FEATURES_VALUES[@]}"; do
+                                        for ENCODING_TYPE in "${ENCODING_TYPES[@]}"; do
+                                          for COMPUTE_METRIC_WEIGHTS in "${COMPUTE_METRIC_WEIGHTS_VALUES[@]}"; do
                                             if [[ $(echo "$ALPHA == 0" | bc) -eq 1 ]]; then
                                               LOCAL_WINDOW_SIZE=0
                                             else

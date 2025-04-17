@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="04153d14-68db-415a-a709-554ed0fc4e78" name="Hosei GPU - TAPformer">
+        <fileTransfer rootFolder="/home/23r8105_messou/lab/HATAformer" accessType="SFTP" host="133.25.196.39" port="22" sshConfigId="1c2086fe-3cfd-4941-8f85-fb05bfa42e65" sshConfig="23r8105_messou@133.25.196.39:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

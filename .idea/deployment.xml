@@ -1,26 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="hosei_gpu" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Hosei GPU - TAPformer" remoteFilesAllowedToDisappearOnAutoupload="false" confirmBeforeUploading="false">
     <option name="confirmBeforeUploading" value="false" />
     <serverData>
-      <paths name="ForecastNet">
+      <paths name="Hosei GPU - TAPformer">
         <serverdata>
           <mappings>
             <mapping deploy="/" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="TimeSeries-Fed-GPU">
-        <serverdata>
-          <mappings>
-            <mapping local="$PROJECT_DIR$/../ABE" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="hosei_gpu">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/" local="$PROJECT_DIR$" web="http://133.25.196.39" />
           </mappings>
         </serverdata>
       </paths>

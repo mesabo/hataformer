@@ -27,7 +27,7 @@ from torch.utils.data import DataLoader
 from src.data_processing.prepare_data import TimeSeriesDataset
 from src.models.hataformer.hataformer_model import HATAFormerModel
 from src.utils.metrics import Metrics
-from src.utils.training_utils import EarlyStopping, get_optimizer, save_attention_maps
+from src.utils.training_utils import EarlyStopping, get_optimizer, save_attention_maps, visualize_positional_encoding
 from src.visualization.testing_visualizations import (
     plot_last_layer_attention_maps,
     plot_multi_step_predictions,
@@ -313,7 +313,6 @@ class TrainHATAFormer:
 
         return val_loss, val_metrics
 
-
     def evaluate(self, test_path):
         """
         Evaluates the model on the test dataset with profiling. Used as well as training in main.
@@ -355,7 +354,7 @@ class TrainHATAFormer:
         ).to(self.device)
 
         # Load model weights
-        self.model.load_state_dict(torch.load(self.model_path, map_location=self.device))
+        self.model.load_state_dict(torch.load(self.model_path, map_location=self.device, weights_only=False))
         self.args.logger.info(f"Model loaded from {self.model_path}.")
 
         self.model.eval()
@@ -364,12 +363,17 @@ class TrainHATAFormer:
         # Profiling: Start tracking memory and time
         start_time = time.time()
         initial_memory = self._track_memory()
+        pe_save_path = self.visual_path / "positional_encoding/"
+        os.makedirs(pe_save_path, exist_ok=True)
 
         with torch.no_grad():
+            num_batch = 0
             for x_batch, y_batch in test_loader:
+                num_batch += 1
                 x_batch, y_batch = x_batch.to(self.device), y_batch.to(self.device)
 
-                preds, masked_attn_weights, cross_attn_weights = self.model(x_batch, y_batch)
+                preds, masked_attn_weights, cross_attn_weights = self.model(x_batch, y_batch, num_batch=num_batch,
+                                                                            pe_path=f"{pe_save_path}")
 
                 # Collect predictions, targets, and attention maps
                 all_preds.append(preds.cpu().numpy())
@@ -377,8 +381,19 @@ class TrainHATAFormer:
 
                 if self.args.visualize_attention:
                     masked_attention_maps.append([attn.cpu().numpy() for attn in masked_attn_weights])
-                    if self.model.num_decoder_layers>0:
+                    if self.args.num_decoder_layers > 0 and cross_attn_weights is not None:
                         cross_attention_maps.append([attn.cpu().numpy() for attn in cross_attn_weights])
+                    visualize_positional_encoding(
+                        pe_path=pe_save_path,
+                        method="pca",  # "pca or tsne"
+                        color_by="position",
+                        encoding_type=self.args.encoding_type,
+                        num_batch = num_batch,
+                        point_size=4,
+                        save_fig=True,                        
+                        lookback=self.args.lookback_window,
+                        forecast_horizon=self.args.forecast_horizon
+                    )
 
         # Profiling: End tracking memory and time
         end_time = time.time()

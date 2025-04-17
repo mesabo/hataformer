@@ -20,6 +20,12 @@ import os
 import numpy as np
 import torch.optim as optim
 import json
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+import plotly.express as px
+import plotly.io as pio
+import plotly.graph_objs as go
 
 
 def load_predictions_and_targets(preds_path):
@@ -128,7 +134,7 @@ class EarlyStopping:
         self.counter = 0
         self.best_score = None
         self.early_stop = False
-        self.val_loss_min = np.Inf
+        self.val_loss_min = np.inf
 
     def __call__(self, val_loss, model):
         score = -val_loss
@@ -175,7 +181,7 @@ def get_optimizer(model, optimizer_name, learning_rate, weight_decay=0):
         return optim.SGD(model.parameters(), lr=learning_rate, momentum=0.9, weight_decay=weight_decay)
     else:
         raise ValueError(f"Unsupported optimizer: {optimizer_name}")
-    
+
 def save_attention_maps(attention_maps, output_path):
     """
     Saves attention maps in a consistent format for later use.
@@ -201,3 +207,240 @@ def save_attention_maps(attention_maps, output_path):
                 np.save(file_path, batch_attn_map)
 
     print(f"Attention maps saved to {output_path}")
+
+
+def visualize_positional_encoding(
+    pe_path,
+    method='pca',
+    color_by='position',
+    save_fig=True,
+    num_batch = None,
+    encoding_type=None,
+    point_size=6,
+    lookback=96,
+    forecast_horizon=96,
+    width=600,
+    height=450,
+    output_format="both"  # 'png', 'pdf', or 'both'
+):
+    """
+    Visualize positional encodings from a saved .pt tensor using Plotly.
+
+    Args:
+        pe_path (str): Path to base directory containing 'data' and 'image' subdirs.
+        method (str): 'pca' or 'tsne'.
+        color_by (str): 'position' or 'batch'.
+        save_fig (bool): Whether to save the figure.
+        show_fig (bool): Whether to show the plot.
+        encoding_type (str): E.g., 'temporal_proj'.
+        point_size (int): Marker size.
+        lookback (int): Lookback window size (for plot title).
+        forecast_horizon (int): Forecast horizon size (for plot title).
+        plot_samples (int): Used for legend text.
+        width (int): Width of plot in px.
+        height (int): Height of plot in px.
+        output_format (str): 'png', 'pdf', or 'both'.
+    """
+    if encoding_type is None:
+        raise ValueError("You must specify an encoding_type (e.g. 'temporal_proj')")
+
+    # Directories
+    load_pe_data = os.path.join(pe_path, "data")
+    save_pe_plot = os.path.join(pe_path, "image")
+    os.makedirs(load_pe_data, exist_ok=True)
+    os.makedirs(save_pe_plot, exist_ok=True)
+
+    # Load tensor
+    pe_file = os.path.join(load_pe_data, f"batch{num_batch}_pe_{encoding_type}.pt")
+    if not os.path.isfile(pe_file):
+        raise FileNotFoundError(f"Encoding file not found: {pe_file}")
+    pe = torch.load(pe_file, weights_only=True)
+
+    if pe.ndim != 3:
+        raise ValueError(f"Expected [B, T, D] tensor, got shape {pe.shape}")
+
+    B, T, D = pe.shape
+    flat_pe = pe.view(-1, D).cpu().numpy()
+
+    # Dimensionality reduction
+    reducer = PCA(n_components=2) if method == 'pca' else TSNE(n_components=2, perplexity=30, init='pca', learning_rate='auto')
+    reduced = reducer.fit_transform(flat_pe)
+
+    # Color mapping
+    if color_by == 'position':
+        colors = np.tile(np.arange(T), B)
+        color_label = 'Seq Pos'
+    elif color_by == 'batch':
+        colors = np.repeat(np.arange(B), T)
+        color_label = 'Batch Index'
+    else:
+        raise ValueError("color_by must be 'position' or 'batch'")
+
+    # Create scatter plot
+    scatter = go.Scattergl(
+        x=reduced[:, 0],
+        y=reduced[:, 1],
+        mode='markers',
+        marker=dict(
+            size=point_size,
+            color=colors,
+            colorscale='Viridis',
+            colorbar=dict(title=color_label),
+            showscale=True
+        ),
+        name="Encoding",
+        text=[f"Index {i}" for i in range(len(colors))]
+    )
+
+    fig = go.Figure(data=[scatter])
+
+    # Update layout
+    fig.update_layout(
+        title=dict(
+            text=f"l={lookback}/p={forecast_horizon} — PE Projection ({encoding_type}, batch {num_batch}) — {method.upper()}",
+            font=dict(size=20, family="Arial", color="black")
+        ),
+        xaxis=dict(
+            title=dict(
+                text="Component 1",
+                font=dict(size=20, family="Arial", color="black")
+            ),
+            tickfont=dict(size=20, family="Arial")
+        ),
+        yaxis=dict(
+            title=dict(
+                text="Component 2",
+                font=dict(size=20, family="Arial", color="black")
+            ),
+            tickfont=dict(size=20, family="Arial")
+        ),
+        legend=dict(
+            font=dict(size=10, family="Arial")
+        ),
+        template="plotly_white",
+        width=width,
+        height=height,
+        autosize=False
+    )
+
+    # Save
+    if save_fig:
+        base_filename = f"batch{num_batch}_pe_{encoding_type}_{method}"
+        save_base_path = os.path.join(save_pe_plot, base_filename)
+        os.makedirs(save_pe_plot, exist_ok=True)
+
+        if output_format in ("png", "both"):
+            fig.write_image(f"{save_base_path}.png", scale=4)
+        if output_format in ("pdf", "both"):
+            fig.write_image(f"{save_base_path}.pdf", scale=4)
+
+        print(f"[Saved] {save_base_path}.(png/pdf)")
+    
+    del fig
+    
+
+def visualize_positional_encoding_grid(
+    pe_path,
+    method='pca',
+    color_by='position',
+    save_fig=True,
+    encoding_type=None,
+    point_size=6,
+    lookback=96,
+    forecast_horizon=96,
+    width=2000,
+    height=900,
+    output_format="both"
+):
+    """
+    Loads and visualizes the first 10 positional encoding batch files in a 2x5 grid.
+
+    Args:
+        pe_path (str): Path to directory with 'data' and 'image' subfolders.
+        method (str): 'pca' or 'tsne'.
+        color_by (str): 'position' or 'batch'.
+        save_fig (bool): Save the figure.
+        encoding_type (str): e.g. 'temporal_proj'
+        point_size (int): Size of each plotted point.
+        lookback (int): Used in title.
+        forecast_horizon (int): Used in title.
+        width (int): Figure width.
+        height (int): Figure height.
+        output_format (str): 'png', 'pdf', or 'both'.
+    """
+    if encoding_type is None:
+        raise ValueError("You must specify an encoding_type (e.g. 'temporal_proj')")
+
+    load_pe_data = os.path.join(pe_path, "data")
+    save_pe_plot = os.path.join(pe_path, "image")
+    os.makedirs(save_pe_plot, exist_ok=True)
+
+    fig = make_subplots(rows=2, cols=5, subplot_titles=[f"Batch {i:02d}" for i in range(10)],
+                        horizontal_spacing=0.03, vertical_spacing=0.1)
+
+    for i in range(10):
+        batch_file = os.path.join(load_pe_data, f"batch{i}_pe_{encoding_type}.pt")
+        if not os.path.isfile(batch_file):
+            print(f"[Skipped] {batch_file} not found.")
+            continue
+
+        pe = torch.load(batch_file, weights_only=True)
+        if pe.ndim != 3:
+            raise ValueError(f"Expected shape [B, T, D], got {pe.shape}")
+        B, T, D = pe.shape
+        flat_pe = pe.view(-1, D).cpu().numpy()
+
+        # Reduce
+        reducer = PCA(n_components=2) if method == 'pca' else TSNE(n_components=2, perplexity=30, init='pca', learning_rate='auto')
+        reduced = reducer.fit_transform(flat_pe)
+
+        # Colors
+        if color_by == 'position':
+            colors = np.tile(np.arange(T), B)
+            color_label = 'Seq Pos'
+        elif color_by == 'batch':
+            colors = np.repeat(np.arange(B), T)
+            color_label = 'Batch Index'
+        else:
+            raise ValueError("color_by must be 'position' or 'batch'")
+
+        # Add to subplot
+        row, col = divmod(i, 5)
+        scatter = go.Scattergl(
+            x=reduced[:, 0],
+            y=reduced[:, 1],
+            mode='markers',
+            marker=dict(
+                size=point_size,
+                color=colors,
+                colorscale='Viridis',
+                showscale=(i == 0),  # Only show colorbar once
+                colorbar=dict(title=color_label) if i == 0 else None
+            ),
+            name=f"Batch {i:02d}",
+            showlegend=False
+        )
+        fig.add_trace(scatter, row=row+1, col=col+1)
+
+    # Global layout
+    fig.update_layout(
+        title=dict(
+            text=f"{lookback} lookback / {forecast_horizon} ahead — PE Projection Grid ({encoding_type}, {method.upper()})",
+            font=dict(size=26, family="Arial", color="black")
+        ),
+        height=height,
+        width=width,
+        template="plotly_white"
+    )
+
+    # Save
+    if save_fig:
+        filename_base = f"grid_pe_{encoding_type}_{method}"
+        path_base = os.path.join(save_pe_plot, filename_base)
+        if output_format in ("png", "both"):
+            fig.write_image(f"{path_base}.png", scale=4)
+        if output_format in ("pdf", "both"):
+            fig.write_image(f"{path_base}.pdf", scale=4)
+        print(f"[Saved] {path_base}.(png/pdf)")
+
+    del fig
