@@ -50,8 +50,8 @@ def get_output_paths(args):
         tuning_subdir_parts.append(f"dl{args.num_decoder_layers}")
     if args.dropout:
         tuning_subdir_parts.append(f"drop{args.dropout}")
-    if args.local_window_size:
-        tuning_subdir_parts.append(f"lws{args.local_window_size}")
+    #if args.local_window_size:
+    #    tuning_subdir_parts.append(f"lws{args.local_window_size}")
     subdir = "_".join(tuning_subdir_parts) if tuning_subdir_parts else "default_tuning"
 
     # Base directory setup
@@ -74,7 +74,7 @@ def get_output_paths(args):
     elif args.test_case in ["evaluate_hataformer", "tuning_evaluate_hataformer", "ablation_evaluate_hataformer"]:
         event_case = "testing"
     else:
-        event_case = "common"
+        event_case = "testing"
 
     paths = {
         "logs": base_dir / "logs" / event_case / args.frequency /
@@ -91,7 +91,7 @@ def get_output_paths(args):
                    f"lookback{args.lookback_window}_forecast{args.forecast_horizon}",
         "visuals": base_dir / "visuals" / event_case / args.frequency /
                    f"lookback{args.lookback_window}_forecast{args.forecast_horizon}",
-        "predictions": base_dir / "predictions" / event_case / args.frequency /
+        "predictions": base_dir / "predictions" / "testing" / args.frequency /
                        f"lookback{args.lookback_window}_forecast{args.forecast_horizon}",
     }
 

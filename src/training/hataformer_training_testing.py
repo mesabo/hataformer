@@ -45,7 +45,7 @@ class TrainHATAFormer:
     def __init__(self, args):
         self.args = args
         self.device = args.device
-        self.metrics = Metrics(seasonality=args.forecast_horizon)
+        self.metrics = Metrics(args=args)
 
         # Placeholder for datasets and loaders
         self.train_loader = None

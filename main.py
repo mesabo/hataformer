@@ -43,20 +43,12 @@ def main():
     # Parse arguments
     args = get_arguments()
 
-    if args.test_case in ["convert_predictions"]:
-        # Setup device
-        args.device = "cuda"
-        args.test_case = "evaluate_tsformer"
-        # Get output paths
-        output_paths = get_output_paths(args)
-        args.test_case = "convert_predictions"
-    else:
-        # Setup device
-        device = setup_device(args)
-        args.device = device.type  # Add device information to args
+    # Setup device
+    device = setup_device(args)
+    args.device = device.type  # Add device information to args
 
-        # Get output paths
-        output_paths = get_output_paths(args)
+    # Get output paths
+    output_paths = get_output_paths(args)   
 
     # Setup logger
     logger = setup_logger(args)

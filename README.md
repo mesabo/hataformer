@@ -194,7 +194,7 @@ This repository provides a comprehensive framework for multivariate time-series 
 2. Create the Conda environment:
    ```bash
    conda env create -f forecastnet_env.yml
-   conda activate itransformers
+   conda activate forecastnet
    ```
 
 ### Data Preparation

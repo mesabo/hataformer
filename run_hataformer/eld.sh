@@ -38,7 +38,7 @@ OPTIMIZERS=("adam")
 PATIENCE=("8")
 EPOCHS=("10")
 D_MODELS=("16")
-N_HEADS=("2")
+N_HEADS=("1" "2")
 D_FFS=("16")
 ENCODER_LAYERS=("0")
 DECODER_LAYERS=("1")
@@ -103,6 +103,7 @@ for TASK in "${TASKS[@]}"; do
                                             echo "  Visualize Attention: $VISUALIZE_ATTENTION"
                                             echo "  Batch Size: $BATCH_SIZE"
                                             echo "  Epochs: $EPOCH"
+                                            echo "  Alpha: $ALPHA"
                                             echo "  Lookback Window: $LOOKBACK_WINDOW"
                                             echo "  Forecast Horizon: $FORECAST_HORIZON"
                                             echo "  Learning Rate: $LEARNING_RATE"
@@ -135,6 +136,7 @@ for TASK in "${TASKS[@]}"; do
                                               --learning_rate "$LEARNING_RATE" \
                                               --weight_decay "$WEIGHT_DECAY" \
                                               --optimizer "$OPTIMIZER" \
+                                              --alpha "$ALPHA" \
                                               --lookback_window "$LOOKBACK_WINDOW" \
                                               --forecast_horizon "$FORECAST_HORIZON" \
                                               --d_model "$D_MODEL" \

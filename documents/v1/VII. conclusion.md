@@ -21,3 +21,7 @@ effective and efficient for deployment in practical IoT systems.
 In summary, TAPFormer offers a compact, interpretable, and scalable solution for long-range forecasting, advancing the
 frontier of Transformer-based time series modeling. We believe its design principles can inform future architectures
 that aim to unify temporal semantics with efficient, multi-scale attention.
+
+Limitations: 
+- Relies formally on time dependency and not applicable to data without time index;
+- Required a minimum of 2 attention head to fully apply both local and global;

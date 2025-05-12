@@ -14,6 +14,9 @@ Lab: Prof YU Keping's Lab
 
 import numpy as np
 
+from src.utils.convert_predictions import ConvertPredictions
+
+
 class Metrics:
     """
     Metrics calculation class for evaluating forecasting models.
@@ -31,13 +34,15 @@ class Metrics:
         metrics, like mean absolute scaled error.
     :type seasonality: int
     """
-    def __init__(self, seasonality=1):
-        self.seasonality = seasonality
+    def __init__(self, args):
+        self.args = args
+        self.seasonality = args.forecast_horizon or 1
 
     def calculate_all(self, actual, predicted):
         """
         Calculate all metrics.
         """
+        ConvertPredictions(self.args).hot_revert_norm(actual, predicted)
         return {
             "MAE": float(f"{self.mean_absolute_error(actual, predicted):6f}"),
             "MSE": float(f"{self.mean_squared_error(actual, predicted):6f}"),

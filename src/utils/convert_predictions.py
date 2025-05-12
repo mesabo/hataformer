@@ -20,6 +20,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from pathlib import Path
 
+import torch
+
 # Add the `src` directory to `PYTHONPATH`
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 sys.path.append(str(PROJECT_ROOT / "src"))
@@ -94,6 +96,36 @@ class ConvertPredictions:
         
         # Process CSV file
         #self.process_csv(self.profile_path)
+
+    def hot_revert_norm(self, predictions, targets):
+        """
+        Reverts normalization on-the-fly using self.revert_normalization and norm_info.json.
+
+        Inputs:
+            predictions: torch.Tensor or np.ndarray (normalized)
+            targets:     torch.Tensor or np.ndarray (normalized)
+
+        Returns:
+            Tuple (targets_denorm, predictions_denorm) as np.ndarrays
+        """
+        if not self.norm_info_path.exists():
+            self.args.logger.error(f"Normalization info not found at {self.norm_info_path}")
+            return None, None
+
+        with open(self.norm_info_path, "r") as f:
+            norm_info = json.load(f)
+
+        # Ensure NumPy arrays (if torch)
+        if isinstance(predictions, torch.Tensor):
+            predictions = predictions.detach().cpu().numpy()
+        if isinstance(targets, torch.Tensor):
+            targets = targets.detach().cpu().numpy()
+
+        # Revert normalization using internal logic
+        predictions = self.revert_normalization(predictions, norm_info)
+        targets = self.revert_normalization(targets, norm_info)
+
+        return targets, predictions
 
     def plot_aggregated_actual_vs_predicted(self, actual, predicted, lookback, forecast_horizon, percentage=100):
         """

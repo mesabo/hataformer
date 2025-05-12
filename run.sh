@@ -32,23 +32,23 @@ FREQUENCIES=("hourly")
 MODELS=("hataformer")
 BATCH_SIZES=("32")
 LOOKBACK_WINDOWS=("96")
-FORECAST_HORIZONS=("96" "192" "336" "720")
+FORECAST_HORIZONS=("96") # "192" "336" "720")
 LEARNING_RATES=("0.0005")
 WEIGHT_DECAYS=("0.000001")
 OPTIMIZERS=("adam")
 PATIENCE=("8")
 EPOCHS=("10")
 D_MODELS=("16")
-N_HEADS=("2")
+N_HEADS=("1")
 D_FFS=("16")
 ENCODER_LAYERS=("0")
 DECODER_LAYERS=("1")
 DROPOUTS=("0.2")
 ADD_TEMPORAL_FEATURES_VALUES=("True")
-ENCODING_TYPES=("temporal_proj" "learnable" "sinusoidal")
+ENCODING_TYPES=("temporal_proj")
 COMPUTE_METRIC_WEIGHTS_VALUES=("True")
 VISUALIZE_ATTENTION="True"
-ALPHAS=("0" "10" "30" "50")
+ALPHAS=("30")
 
 # Grid Search Execution
 for TASK in "${TASKS[@]}"; do
@@ -104,6 +104,7 @@ for TASK in "${TASKS[@]}"; do
                                             echo "  Visualize Attention: $VISUALIZE_ATTENTION"
                                             echo "  Batch Size: $BATCH_SIZE"
                                             echo "  Epochs: $EPOCH"
+                                            echo "  Alpha: $ALPHA"
                                             echo "  Lookback Window: $LOOKBACK_WINDOW"
                                             echo "  Forecast Horizon: $FORECAST_HORIZON"
                                             echo "  Learning Rate: $LEARNING_RATE"
@@ -136,6 +137,7 @@ for TASK in "${TASKS[@]}"; do
                                               --learning_rate "$LEARNING_RATE" \
                                               --weight_decay "$WEIGHT_DECAY" \
                                               --optimizer "$OPTIMIZER" \
+                                              --alpha "$ALPHA" \
                                               --lookback_window "$LOOKBACK_WINDOW" \
                                               --forecast_horizon "$FORECAST_HORIZON" \
                                               --d_model "$D_MODEL" \
