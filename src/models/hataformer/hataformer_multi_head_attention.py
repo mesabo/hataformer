@@ -62,6 +62,25 @@ class HATAFormerMultiHeadAttention(nn.Module):
             bias[i, start:end] = 1.0
         bias = bias.unsqueeze(0).unsqueeze(0)
         return bias
+    
+    import torch
+
+    def gaussian_local_bias(seq_len: int, window_radius: float, device=None): #Theoritically, the window_radius should be > 0
+        """
+        Generates a smooth Gaussian locality bias matrix M of shape (seq_len, seq_len).
+
+        Args:
+            seq_len (int): Length of the input sequence.
+            window_radius (float): Standard deviation of the Gaussian, controls locality spread.
+            device (torch.device or str): Target device (e.g., 'cuda' or 'cpu').
+
+        Returns:
+            torch.Tensor: A (seq_len x seq_len) symmetric bias matrix with values in [0, 1].
+        """
+        pos = torch.arange(seq_len, dtype=torch.float32, device=device).unsqueeze(0)  # (1, T)
+        dist = pos - pos.transpose(0, 1)  # (T, T)
+        M = torch.exp(- (dist ** 2) / (2 * window_radius ** 2))  # Gaussian decay
+        return M  # shape: (seq_len, seq_len)
 
     def forward(self, query, key, value):
         batch_size = query.size(0)

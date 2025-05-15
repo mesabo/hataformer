@@ -25,14 +25,14 @@ if [[ -z "$CONDA_DEFAULT_ENV" || "$CONDA_DEFAULT_ENV" != "$ENV_NAME" ]]; then
 fi
 
 # Configurations with choices: v1->paper1
-TASKS=("etth1_data" "etth2_data" "ettm1_data" "ettm2_data" "electricity_data" "household_data")
+TASKS=("ettm2_data") #("etth1_data" "etth2_data" "ettm1_data" "ettm2_data" "electricity_data" "household_data")
 TEST_CASES=("preprocess_data")
 TARGET="conso"
 FREQUENCIES=("hourly")
 MODELS=("tsformer")
 BATCH_SIZES=("16")
 LOOKBACK_WINDOWS=("96") #("7" "14" "21" "30" "60" "90") # TODO: v1
-FORECAST_HORIZONS=("720") #("7" "14" "21" "30" "60" "90") # TODO: v1
+FORECAST_HORIZONS=("336" "720") #("7" "14" "21" "30" "60" "90") # TODO: v1
 LOCAL_WINDOW_SIZES=("0")  # TODO: v1
 LEARNING_RATES=("0.0005")
 WEIGHT_DECAYS=("0.00001")
